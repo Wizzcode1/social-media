@@ -21,9 +21,7 @@ public class JwtAuthenticationFilter extends AuthenticationWebFilter {
     private final JwtService jwtService;
 
     public JwtAuthenticationFilter(JwtService jwtService) {
-        super((ReactiveAuthenticationManager) authentication -> {
-            return Mono.just(authentication); // dummy
-        });
+        super((ReactiveAuthenticationManager) authentication -> Mono.just(authentication)); // dummy manager
 
         this.jwtService = jwtService;
 
@@ -49,8 +47,10 @@ public class JwtAuthenticationFilter extends AuthenticationWebFilter {
     public Mono<Void> filter(ServerWebExchange exchange, org.springframework.web.server.WebFilterChain chain) {
         return extractToken(exchange)
                 .filter(jwtService::isTokenValid)
-                .map(jwtService::extractEmail)
-                .map(email -> new UsernamePasswordAuthenticationToken(email, null, Collections.emptyList()))
+                .map(token -> {
+                    String username = jwtService.extractUsername(token);
+                    return new UsernamePasswordAuthenticationToken(username, null, Collections.emptyList());
+                })
                 .flatMap(auth -> chain.filter(exchange)
                         .contextWrite(ReactiveSecurityContextHolder.withSecurityContext(Mono.just(new SecurityContextImpl(auth)))))
                 .switchIfEmpty(chain.filter(exchange));

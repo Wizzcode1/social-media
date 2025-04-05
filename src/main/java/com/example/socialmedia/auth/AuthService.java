@@ -33,7 +33,7 @@ public class AuthService {
                             .build();
 
                     return userRepository.save(user)
-                            .map(saved -> new AuthResponse(jwtService.generateToken(saved.getEmail())));
+                            .map(saved -> new AuthResponse(jwtService.generateToken(saved.getEmail(), saved.getUsername())));
                 });
     }
 
@@ -41,7 +41,7 @@ public class AuthService {
         return userRepository.findByEmail(request.getEmail())
                 .flatMap(user -> {
                     if (passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-                        return Mono.just(new AuthResponse(jwtService.generateToken(user.getEmail())));
+                        return Mono.just(new AuthResponse(jwtService.generateToken(user.getEmail(), user.getUsername())));
                     } else {
                         return Mono.error(new RuntimeException("Invalid credentials"));
                     }
